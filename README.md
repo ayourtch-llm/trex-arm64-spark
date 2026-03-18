@@ -94,29 +94,34 @@ Example `trex_cfg.yaml` for DGX Spark with ConnectX-7 (dual PCIe domain):
 
 ## Sending Traffic (Python API)
 
-```python
-import sys
-sys.path.insert(0, "/opt/trex/scripts/automation/trex_control_plane/interactive")
-from trex.stl.api import *
+The TRex Python API can run from **any machine** that can reach the TRex
+server over the network (ports 4500/4501). No Docker needed on the client.
 
-c = STLClient(server="127.0.0.1")
-c.connect()
-c.reset()
+### From any host (using uv)
 
-pkt = STLPktBuilder(
-    pkt=Ether()/IP(src="10.0.1.100", dst="10.10.1.1")/UDP(dport=12, sport=1025)/Raw(b"x"*16)
-)
-c.add_streams(STLStream(packet=pkt, mode=STLTXCont(pps=1000000)), ports=[0])
-c.start(ports=[0], duration=10)
-c.wait_on_traffic()
-print(c.get_stats())
-c.disconnect()
+```bash
+# Install uv if needed: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Simple test (uv auto-installs pyzmq + scapy)
+uv run examples/send_traffic.py --server <trex-host-ip> --rate 10mpps --duration 10
+
+# Full packet size sweep
+uv run examples/pkt_size_sweep.py --server <trex-host-ip>
 ```
 
-Benchmark scripts are in the `scripts/` directory:
-- `scripts/send_traffic.py` - Simple 1 Mpps test
-- `scripts/bench_64b_v2.py` - 64B multi-flow dual-port max rate
-- `scripts/pkt_size_sweep.py` - Full packet size sweep (64-1518B)
+### From inside the container
+
+```bash
+docker exec trex python3 /opt/trex/examples/send_traffic.py --rate 10mpps
+```
+
+### Available scripts
+
+| Script | Location | Description |
+|--------|----------|-------------|
+| `examples/send_traffic.py` | Run from anywhere via `uv run` | Simple single-port test with CLI args |
+| `examples/pkt_size_sweep.py` | Run from anywhere via `uv run` | Full sweep (64-1518B) at max rate |
+| `scripts/bench_64b_v2.py` | Container only | 64B multi-flow dual-port max rate |
 
 ## Performance Results
 
@@ -180,12 +185,9 @@ should be investigated if runtime issues occur:
 This was fixed in this fork. If you see it, ensure you're using this patched version.
 
 ### "libzmq.so: cannot open shared object file" in Python API
-The Dockerfile populates `arm/64bit/libzmq.so` automatically. If running outside
-Docker, symlink your system libzmq:
-```bash
-mkdir -p scripts/external_libs/pyzmq-ctypes/zmq/arm/64bit
-ln -s /usr/lib/aarch64-linux-gnu/libzmq.so.5 scripts/external_libs/pyzmq-ctypes/zmq/arm/64bit/libzmq.so
-```
+The bundled pyzmq-ctypes now falls back to system `pyzmq` automatically.
+Install it with `pip install pyzmq` or use `uv run` (which handles it).
+Inside Docker, the Dockerfile populates the ARM binary automatically.
 
 ### "ZMQ: Address already in use"
 A previous TRex instance is still running. Stop it: `docker stop trex`
