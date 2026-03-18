@@ -227,7 +227,11 @@ RXCapturePort::~RXCapturePort() {
 
 void RXCapwapProxy::create(RXFeatureAPI *api) {
     m_api = api;
+#ifdef TREX_USE_BPFJIT
     m_wired_bpf_filter = bpfjit_compile("ip and udp src port 5247 and udp[48:2] == 2048");
+#else
+    m_wired_bpf_filter = bpf_compile("ip and udp src port 5247 and udp[48:2] == 2048");
+#endif
 }
 
 
@@ -341,7 +345,11 @@ RXCapwapProxy::handle_wired(rte_mbuf_t *m) {
     }
     m_pkt_data_ptr = rte_pktmbuf_mtod(m, char *);
 
+#ifdef TREX_USE_BPFJIT
     rc = bpfjit_run(m_wired_bpf_filter, m_pkt_data_ptr, rx_pkt_size);
+#else
+    rc = bpf_run(m_wired_bpf_filter, m_pkt_data_ptr, rx_pkt_size);
+#endif
     if ( unlikely(!rc) ) {
         m_bpf_rejected += 1;
         return RX_PKT_FREE;
