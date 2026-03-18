@@ -1,0 +1,23 @@
+# TRex RX config for gx10-bb6a (sink/receiver side)
+# Receives traffic forwarded by VPP DUT (gx10-be8b) on QSFP2 ports
+#
+# Port 0: 0000:01:00.1 (PCIe domain 0, QSFP2) <- VPP2 nic1-out
+# Port 1: 0002:01:00.1 (PCIe domain 1, QSFP2) <- VPP2 nic2-out
+
+- port_limit: 2
+  version: 2
+  interfaces: ["0000:01:00.1", "0002:01:00.1"]
+  port_info:
+    - dest_mac: "30:c5:99:3f:be:8d"  # VPP2 enp1s0f1np1 (0000:01:00.1)
+      src_mac:  "30:c5:99:3f:bb:6c"  # bb6a enp1s0f1np1 (0000:01:00.1)
+    - dest_mac: "30:c5:99:3f:be:91"  # VPP2 enP2p1s0f1np1 (0002:01:00.1)
+      src_mac:  "30:c5:99:3f:bb:70"  # bb6a enP2p1s0f1np1 (0002:01:00.1)
+  platform:
+    master_thread_id: 0
+    latency_thread_id: 10
+    dual_if:
+      - socket: 0
+        threads: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  c: 1
+  new_memory: true
+  port_mtu: 9000
