@@ -1,0 +1,25 @@
+# TRex config for DGX Spark gx10-96b6
+# ConnectX-7: two PCIe domains, QSFP1 ports face VPP2 (gx10-be8b)
+#
+# Port 0: 0000:01:00.0 (PCIe domain 0, QSFP1) -> VPP2 0000:01:00.0
+# Port 1: 0002:01:00.0 (PCIe domain 1, QSFP1) -> VPP2 0002:01:00.0
+#
+# Using both PCIe domains for max throughput
+
+- port_limit: 2
+  version: 2
+  interfaces: ["0000:01:00.0", "0002:01:00.0"]
+  port_info:
+    - dest_mac: "30:c5:99:3f:be:8c"  # VPP2 enp1s0f0np0 (0000:01:00.0)
+      src_mac:  "30:c5:99:3f:96:b7"  # gx10-96b6 enp1s0f0np0 (0000:01:00.0)
+    - dest_mac: "30:c5:99:3f:be:90"  # VPP2 enP2p1s0f0np0 (0002:01:00.0)
+      src_mac:  "30:c5:99:3f:96:bb"  # gx10-96b6 enP2p1s0f0np0 (0002:01:00.0)
+  platform:
+    master_thread_id: 0
+    latency_thread_id: 10
+    dual_if:
+      - socket: 0
+        threads: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  c: 1
+  new_memory: true
+  port_mtu: 9000
