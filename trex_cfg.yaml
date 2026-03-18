@@ -20,6 +20,6 @@
     dual_if:
       - socket: 0
         threads: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-  c: 1
+  c: 9
   new_memory: true
   port_mtu: 9000
