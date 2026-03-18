@@ -80,7 +80,7 @@ devices = {}
 
 dpdk_and_kernel=[ "mlx5_core", "mlx5_ib", 'mlx4_core', 'mlx4_ib', "mana", "mana_ib" ]
 
-if march == 'ppc64le':
+if march in ('ppc64le', 'aarch64'):
     dpdk_drivers = ["vfio-pci"]
 else:
     dpdk_drivers = ["igb_uio", "vfio-pci", "uio_pci_generic" ]

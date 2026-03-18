@@ -8,8 +8,25 @@ INPUT_ARGS=${@//[]/-} # replace bizarre minuses with normal one
 EXTRA_INPUT_ARGS=""
 ARCH=$(uname -m)
 
-./trex-cfg $INPUT_ARGS
-RESULT=$?
+# On aarch64, detect MLX5 directly from sysfs to avoid dpdk_setup_ports.py
+# parsing issues with lspci output format on ARM
+if [[ "$ARCH" == "aarch64" ]]; then
+    MLX5_FOUND=0
+    for dev in /sys/bus/pci/devices/*/driver; do
+        if [[ "$(readlink -f "$dev" 2>/dev/null)" == *mlx5_core ]]; then
+            MLX5_FOUND=1
+            break
+        fi
+    done
+    if [[ "$MLX5_FOUND" -eq 1 ]]; then
+        EXTRA_INPUT_ARGS="--mlx5-so"
+        echo "aarch64: detected mlx5_core driver, adding --mlx5-so"
+    fi
+    RESULT=0
+else
+    ./trex-cfg $INPUT_ARGS
+    RESULT=$?
+fi
 
 if [ $RESULT -eq 255 ]; then
   echo "ERROR encountered while configuring TRex system"

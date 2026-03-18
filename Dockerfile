@@ -106,4 +106,8 @@ WORKDIR /opt/trex/scripts
 # Make the binary executable
 RUN chmod +x _t-rex-64 t-rex-64 2>/dev/null || true
 
+# Populate pyzmq arm/64bit with system libzmq for TRex Python API
+RUN mkdir -p external_libs/pyzmq-ctypes/zmq/arm/64bit && \
+    cp /usr/lib/aarch64-linux-gnu/libzmq.so.5 external_libs/pyzmq-ctypes/zmq/arm/64bit/libzmq.so
+
 ENTRYPOINT ["/bin/bash"]

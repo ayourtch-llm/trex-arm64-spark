@@ -457,14 +457,17 @@ Other network devices
 
     def tune_mlx_device (self,pci_id):
         # set PCIe Read to 4K and not 512 ... need to add it to startup s
-        val=self.read_pci (pci_id,68)
-        if val[0]=='0':
-            #hypervisor does not give the right to write to this register
-            return;
-        if val[0]!='5':
-            val='5'+val[1:]
-            self.write_pci (pci_id,68,val)
-            assert(self.read_pci (pci_id,68)==val);
+        try:
+            val=self.read_pci (pci_id,68)
+            if val[0]=='0':
+                #hypervisor does not give the right to write to this register
+                return;
+            if val[0]!='5':
+                val='5'+val[1:]
+                self.write_pci (pci_id,68,val)
+                assert(self.read_pci (pci_id,68)==val);
+        except Exception as e:
+            print("Warning: Could not tune PCIe MaxReadReq for %s: %s" % (pci_id, e))
 
     def get_mtu_mlx (self,dev_id):
         if len(dev_id)>0:
@@ -516,8 +519,8 @@ Other network devices
 
 
         if not os.path.isfile(ofed_info):
-            print("OFED %s is not installed on this setup." % ofed_info)
-            sys.exit(-1);
+            print("Warning: OFED %s is not installed, using inbox rdma-core drivers." % ofed_info)
+            return;
 
         try:
           out = subprocess.check_output([ofed_info])
@@ -979,9 +982,11 @@ Other network devices
 
             if 'Mellanox' in self.m_devices[key]['Vendor_str']:
                 Mellanox_cnt += 1
-                if 'mlx5' in self.m_devices[key]['Driver_str']:
+                driver_str = self.m_devices[key].get('Driver_str', '')
+                device_str = self.m_devices[key].get('Device_str', '')
+                if 'mlx5' in driver_str or 'ConnectX-5' in device_str or 'ConnectX-6' in device_str or 'ConnectX-7' in device_str:
                     mlx5_present = MLX5_EXIT_CODE
-                if 'mlx4' in self.m_devices[key]['Driver_str']:
+                if 'mlx4' in driver_str or 'ConnectX-3' in device_str:
                     mlx4_present = MLX4_EXIT_CODE
             if 'Broadcom' in self.m_devices[key]['Vendor_str']:
                 Broadcom_cnt += 1
@@ -1107,9 +1112,9 @@ Other network devices
         dpdk_interfaces = []
         check_drivers = set()
         for device in self.m_devices.values():
-            if device.get('Driver_str') in dpdk_nic_bind.dpdk_drivers:
+            if device.get('Driver_str', '') in dpdk_nic_bind.dpdk_drivers:
                 dpdk_interfaces.append(device['Slot'])
-                check_drivers.add(device['Driver_str'])
+                check_drivers.add(device.get('Driver_str', ''))
         if not dpdk_interfaces:
             print('No DPDK bound interfaces.')
             return
