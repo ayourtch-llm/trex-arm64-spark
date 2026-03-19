@@ -16,10 +16,10 @@
       src_mac:  "30:c5:99:3f:96:bb"  # gx10-96b6 enP2p1s0f0np0 (0002:01:00.0)
   platform:
     master_thread_id: 0
-    latency_thread_id: 10
+    latency_thread_id: 19
     dual_if:
       - socket: 0
-        threads: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-  c: 9
+        threads: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+  c: 18
   new_memory: true
   port_mtu: 9000
