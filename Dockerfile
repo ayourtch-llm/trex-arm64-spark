@@ -45,7 +45,9 @@ COPY . /src/trex-core
 WORKDIR /src/trex-core
 
 # Populate scripts/so/aarch64/ with system libstdc++ and libzmq
-RUN cp /usr/lib/aarch64-linux-gnu/libstdc++.so.6 scripts/so/aarch64/ && \
+# This directory must exist before ./b build (waf post-build symlinks .so files here)
+RUN mkdir -p scripts/so/aarch64 && \
+    cp /usr/lib/aarch64-linux-gnu/libstdc++.so.6 scripts/so/aarch64/ && \
     cp /usr/lib/aarch64-linux-gnu/libzmq.so.5 scripts/so/aarch64/ 2>/dev/null || true
 
 # Replace bundled ancient zmq 3.2 headers with system zmq 4.x for aarch64
@@ -68,11 +70,27 @@ WORKDIR /src/trex-core/linux_dpdk
 RUN ./b configure 2>&1 | tail -40
 RUN ./b build 2>&1 | tail -20
 
-# Verify the binary was produced
-RUN ls -la /src/trex-core/scripts/_t-rex-64 || \
-    (echo "BUILD FAILED: _t-rex-64 not found" && \
-     find /src/trex-core -name "_t-rex-64" -o -name "t-rex-64" 2>/dev/null && \
-     exit 1)
+# Create symlinks if waf post-build failed to (happens when so/ symlinks fail)
+RUN if [ ! -e /src/trex-core/scripts/_t-rex-64 ]; then \
+        if [ -f /src/trex-core/linux_dpdk/build_dpdk/linux_dpdk/_t-rex-64 ]; then \
+            ln -sf ../linux_dpdk/build_dpdk/linux_dpdk/_t-rex-64 /src/trex-core/scripts/_t-rex-64; \
+            ln -sf ../linux_dpdk/build_dpdk/linux_dpdk/_t-rex-64-o /src/trex-core/scripts/_t-rex-64-o 2>/dev/null; \
+            echo "Created missing symlinks"; \
+        else \
+            echo "BUILD FAILED: _t-rex-64 binary not found"; \
+            exit 1; \
+        fi; \
+    fi && \
+    ls -la /src/trex-core/scripts/_t-rex-64
+
+# Create missing .so symlinks in scripts/so/aarch64/ if waf didn't
+RUN for so in /src/trex-core/linux_dpdk/build_dpdk/linux_dpdk/lib*.so; do \
+        base=$(basename "$so"); \
+        target="/src/trex-core/scripts/so/aarch64/$base"; \
+        if [ ! -e "$target" ]; then \
+            cp "$so" "$target" 2>/dev/null || true; \
+        fi; \
+    done
 
 # ---- Runtime image ----
 FROM ubuntu:24.04
